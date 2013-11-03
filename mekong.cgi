@@ -28,6 +28,7 @@ exit 0;
 
 sub cgi_main {
 	print page_header();
+    print navbar();
 
     set_global_variables();
 	read_books($books_file);
@@ -71,18 +72,18 @@ eof
 # ascii display of search results
 sub search_results {
 	my ($search_terms) = @_;
-	my @matching_isbns = search_books($search_terms);
+    my @matching_isbns = search_books($search_terms);
 
 	my $htmlHeader = <<eof;
-	<p>$search_terms
-	<p>@matching_isbns
+    Search results for $search_terms:
     <table class="table table-hover">
     <thead>
         <tr>
             <th>Book</th>
-            <th>Author</th>
+            <th>Authors</th>
             <th>Title</th>
             <th>Price</th>
+            <th>Add to cart</th>
             <th>
         </tr>
     </thead>
@@ -127,7 +128,7 @@ eof
 # HTML at top of every screen
 #
 sub page_header() {
-	return <<eof;
+	my $header = <<eof;
 Content-Type: text/html
 
 <!DOCTYPE html>
@@ -136,54 +137,54 @@ Content-Type: text/html
 <title>Mekong: All the books you could want!</title>
 <link href="//netdna.bootstrapcdn.com/bootstrap/3.0.1/css/bootstrap.min.css" rel="stylesheet">
 <script src="//netdna.bootstrapcdn.com/bootstrap/3.0.1/js/bootstrap.min.js"></script>
+<style> 
+    body {
+        padding-top: 60px;
+    }
+</style>
 </head>
 <body>
-<nav class="navbar navbar-default navbar-fixed-top" role="navigation">
-  <div class="navbar-header">
-    <a class="navbar-brand" href="mekong.cgi">Mekong</a>
-  </div>
 
-  <!-- Collect the nav links, forms, and other content for toggling -->
-  <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
-    <ul class="nav navbar-nav">
-      <li class="active"><a href="#">Link</a></li>
-      <li><a href="#">Link</a></li>
-      <li class="dropdown">
-        <a href="#" class="dropdown-toggle" data-toggle="dropdown">Dropdown <b class="caret"></b></a>
-        <ul class="dropdown-menu">
-          <li><a href="#">Action</a></li>
-          <li><a href="#">Another action</a></li>
-          <li><a href="#">Something else here</a></li>
-          <li class="divider"></li>
-          <li><a href="#">Separated link</a></li>
-          <li class="divider"></li>
-          <li><a href="#">One more separated link</a></li>
-        </ul>
-      </li>
-    </ul>
+eof
+    return $header;
+}
+
+sub navbar() {
+    my $navbar = <<eof;
+<nav class="navbar navbar-default navbar-fixed-top" role="navigation">
+    <div class="navbar-header">
+        <a class="navbar-brand" href="mekong.cgi">Mekong</a>
+    </div>
+
+
     <form class="navbar-form navbar-left" role="search">
-      <div class="form-group">
-        <input type="text" class="form-control" placeholder="Search">
-      </div>
-      <button type="submit" class="btn btn-default">Submit</button>
+        <div class="input-group">
+            <input type="text" class="form-control" placeholder="Search">
+            <div class="input-group-btn">
+                <button class="btn btn-default" type="submit"><i class="glyphicon glyphicon-search"></i></button>
+            </div>
+        </div>
     </form>
-    <ul class="nav navbar-nav navbar-right">
-      <li><a href="#">Link</a></li>
-      <li class="dropdown">
-        <a href="#" class="dropdown-toggle" data-toggle="dropdown">Dropdown <b class="caret"></b></a>
-        <ul class="dropdown-menu">
-          <li><a href="#">Action</a></li>
-          <li><a href="#">Another action</a></li>
-          <li><a href="#">Something else here</a></li>
-          <li class="divider"></li>
-          <li><a href="#">Separated link</a></li>
+
+    <div class="collapse navbar-collapse">
+        <ul class="nav navbar-nav navbar-right">
+            <li><a href="#">Link</a></li>
+            <li class="dropdown">
+                <a href="#" class="dropdown-toggle" data-toggle="dropdown">Dropdown <b class="caret"></b></a>
+                <ul class="dropdown-menu">
+                    <li><a href="#">Action</a></li>
+                    <li><a href="#">Another action</a></li>
+                    <li><a href="#">Something else here</a></li>
+                    <li class="divider"></li>
+                    <li><a href="#">Separated link</a></li>
+                </ul>
+            </li>
         </ul>
-      </li>
-    </ul>
-  </div><!-- /.navbar-collapse -->
+    </div>
 </nav>
 
 eof
+    return $navbar;
 }
 
 #
