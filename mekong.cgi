@@ -134,13 +134,10 @@ Content-Type: text/html
 <html lang="en">
 <head>
 <title>Mekong: All the books you could want!</title>
-<link href="../bootstrap-dist/css/bootstrap.min.css" rel="stylesheet">
-<script src="../bootstrap-dist/js/bootstrap.min.js"></script>
+<link href="//netdna.bootstrapcdn.com/bootstrap/3.0.1/css/bootstrap.min.css" rel="stylesheet">
+<script src="//netdna.bootstrapcdn.com/bootstrap/3.0.1/js/bootstrap.min.js"></script>
 </head>
 <body>
-<p>
-<div class="container">
-
 <nav class="navbar navbar-default navbar-fixed-top" role="navigation">
   <div class="navbar-header">
     <a class="navbar-brand" href="mekong.cgi">Mekong</a>
@@ -197,7 +194,6 @@ sub page_trailer() {
 	
 	return <<eof;
 	$debugging_info
-	</div>
 <body>
 </html>
 eof
