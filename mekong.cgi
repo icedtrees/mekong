@@ -11,20 +11,11 @@ $| = 1;
 if (!@ARGV) {
 	# run as a CGI script
 	cgi_main();
-	
 } else {
 	# for debugging purposes run from the command line
 	console_main();
 }
-exit 0;
-
-# This is very simple CGI code that goes straight
-# to the search screen and it doesn't format the
-# search results at all
-
-# This is very simple CGI code that goes straight
-# to the search screen and it doesn't format the
-# search results at all
+exit(0);
 
 sub cgi_main {
 	print page_header();
@@ -39,11 +30,12 @@ sub cgi_main {
     if (defined $search_terms) {
 		print search_results($search_terms);
 	} elsif (defined $login) {
-		print search_form();
+		print user_form();
 	} else {
 		print guest_home();
 	}
 	
+   
 	print page_trailer();
 }
 
@@ -67,16 +59,16 @@ sub guest_home {
                     </h3>
                 </div>
                 <div class="panel-body">
-                    <form role="form">
+                    <form role="form" method="POST" action="?login=true">
                         <div class="form-group">
                             <label for="username">Username: </label>
-                            <input type="text" class="form-control" id="username" size=14></input>
+                            <input type="text" class="form-control" name="username" size=14></input>
                         </div>
                         <div class="form-group">
                             <label for="password">Password: </label>
-                            <input type="text" class="form-control" id="password" size=14></input>
+                            <input type="password" class="form-control" name="password" size=14></input>
                         </div>
-                        <button type="submit" class="btn btn-primary">Login</button>
+                        <button type="submit" class="btn btn-primary"><b>Login</b></button>
                     </form>
                 </div>
             </div>
@@ -92,13 +84,13 @@ sub guest_home {
                     <form role="form">
                         <div class="form-group">
                             <label for="username">Username: </label>
-                            <input type="text" class="form-control" id="username" size=16></input>
+                            <input type="text" class="form-control" name="username" size=16></input>
                         </div>
                         <div class="form-group">
                             <label for="password">Password: </label>
-                            <input type="text" class="form-control" id="password" size=16></input>
+                            <input type="text" class="form-control" name="password" size=16></input>
                         </div>
-                        <button type="submit" class="btn btn-primary">Login</button>
+                        <button type="submit" class="btn btn-success"><b>Make a new account!</b></button>
                     </form>
                 </div>
             </div>
@@ -108,14 +100,15 @@ sub guest_home {
 eof
 }
 
-# simple search form
-sub search_form {
-	return <<eof;
-	<p>
+sub user_form {
+    return <<eof;
+    Welcome back, user!
+    Here are some books you might be interested in.
+    
+    Or alternatively, you might want to search for 
 	<form>
 		search: <input type="text" name="search_terms" size=60></input>
 	</form>
-	<p>
 eof
 }
 
