@@ -141,14 +141,21 @@ eof
 }
 
 sub user_form {
-    return <<eof;
+    $text = <<eof;
     <div style="margin-left:8%">
     <h1>Welcome back, @_!</h1>
     <h2>Here are some books you might be interested in.</h2>
+eof
+
+    $text .= basket_results($username);
     
+    $text .= <<eof;
+    <h2>Sorry, we don't know what books you like yet. Maybe you should buy some?</h2>
     <h2>Or alternatively, you might want to search for you own book above.</h2>
     </div>
 eof
+
+    return $text;
 }
 
 sub generic_form {
@@ -396,7 +403,7 @@ eof
 # HTML at bottom of every screen
 #
 sub page_trailer() {
-	my $debugging_info = debugging_info();
+	#my $debugging_info = debugging_info();
 	
 	return <<eof;
 	$debugging_info
