@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!C:/Perl64/bin/perl.exe
 # written by andrewt@cse.unsw.edu.au October 2013
 # as a starting point for COMP2041 assignment 2
 # http://www.cse.unsw.edu.au/~cs2041/assignments/mekong/
@@ -18,32 +18,62 @@ if (!@ARGV) {
 exit(0);
 
 sub cgi_main {
+	my $username = param('username');
+
 	print page_header();
-    print navbar();
+    print navbar($username);
 
     set_global_variables();
 	read_books($books_file);
 
-	my $username = param('username');
 	my $search_terms = param('search_terms');
     my $new_username = param('new_username');
-    my ($login, $password, $name, $street, $city, $state, $postcode, $email) = (param('login'), param('password'), param('name'), param('street'), param('city'), param('state'), param('postcode'), param('email'));
+    my $password = param('password');
+    my $purchase = param('purchase');
+    my $learn = param('learn');
+    my $view = param('view');
+    my $logout = param('logout');
+    my ($login, $name, $street, $city, $state, $postcode, $email) = (param('login'), param('name'), param('street'), param('city'), param('state'), param('postcode'), param('email'));
     if (defined $search_terms) {
 		print search_results($search_terms);
-    } elsif (defined $login) {
+    } elsif (defined $purchase) {
+        if (!defined $username || $username eq "") {
+            print(generic_form("Please log in before you buy stuff!"));
+        } elsif (add_basket($username, $purchase)) {
+            print(generic_form("Well done on making your purchase!"));
+        } else {
+            print(generic_form("$last_error"));
+        }
+    } elsif (defined $learn) {
+        print(generic_form("Mekong was made by Davy Mao from COMP2041"));
+    } elsif (defined $view) {
+        if ($view eq "cart") {
+            if (!defined $username || $username eq "") {
+                print(generic_form("Please log in before you buy stuff!"));
+            } else {
+                print(basket_results($username));
+            }
+        } else { # view order
+        }
+    } elsif (defined $logout) {
+        $username = "";
+        print(generic_form("You have been logged out. Thank you for shopping at Mekong!"));
+    } elsif (defined $name) {
         if (new_account($login, $password, $name, $street, $city, $state, $postcode, $email)) {
-            print(user_form());
+            print(user_form($username));
         } else {
             print(new_user_form("error"));
         }
-    } elsif (defined $username) {
-        if (authenticate($username, $password)) {
-            print user_form();
+    } elsif (defined $password) {
+        if (authenticate(($username, $password))) {
+            print user_form($username);
         } else {
             print(guest_home($last_error));
         }
 	} elsif (defined $new_username) {
         print(new_user_form($new_username));
+    } elsif (defined $username && $username ne "") {
+        print(user_form($username));
     } else {
 		print guest_home();
 	}
@@ -59,9 +89,9 @@ sub guest_home {
         <div style="margin-left: 10%; float: left; width: 35%">
             <h1>Welcome to Mekong!</h1>
             <p>Mekong is a great website that makes buying books a fun experience!</p>
-            <p>Make sure to check out some of the <a href="#"><b>top-ranked releases!</b></a></p>
+            <p>Make sure to check out some of the <a href="?search_terms=cool book"><b>top-ranked releases!</b></a></p>
             <br/>
-            <p><a class="btn btn-primary btn-lg" role="button">Learn more about Mekong</a></p>
+            <p><a href="?learn=true"><button class="btn btn-primary btn-lg" role="button">Learn more about Mekong</button></a></p>
         </div>
         <div style="margin-left: 50%; width: 300px">
             <div class="panel panel-default panel-primary">
@@ -112,23 +142,35 @@ eof
 
 sub user_form {
     return <<eof;
-    Welcome back, user!
-    Here are some books you might be interested in.
+    <div style="margin-left:8%">
+    <h1>Welcome back, @_!</h1>
+    <h2>Here are some books you might be interested in.</h2>
     
-    Or alternatively, you might want to search for 
-	<form>
-		search: <input type="text" name="search_terms" size=60></input>
-	</form>
+    <h2>Or alternatively, you might want to search for you own book above.</h2>
+    </div>
 eof
+}
+
+sub generic_form {
+    return <<eof;
+    <br/>
+    <div style="margin-left: 10%; width: 70%">
+        <div class="alert alert-info">@_</div>
+        <form method="POST" action="?">
+            <button type="submit" class="btn btn-info">Back to Home</button>
+            <input type="hidden" value="$username" name="username">
+        </form>
+    </div>
+eof
+
 }
 
 sub new_user_form {
     my $username = @_[0];
-    print("username is $username");
     $formText = <<eof;
     <div class="panel panel-default" style="margin-left: 8%; width: 300px; margin-top: 20px">
     <div class="panel-body">
-    <form role="form" method="POST" action="?">
+    <form role="form" method="POST" action="?username=$username">
 
 eof
 
@@ -181,12 +223,14 @@ eof
 
 # ascii display of search results
 sub search_results {
-	my ($search_terms) = @_;
+	my ($search_terms) = @_[0];
     my @matching_isbns = search_books($search_terms);
 
 	my $htmlHeader = <<eof;
-    Search results for $search_terms:
-    <table class="table table-hover">
+    <div style="margin-left: 10%">
+        <h2>Search results for $search_terms:</h2>
+    </div>
+    <table class="table table-hover" style="margin-left: 10%; width:70%">
     <thead>
         <tr>
             <th>Book</th>
@@ -194,6 +238,65 @@ sub search_results {
             <th>Title</th>
             <th>Price</th>
             <th>Add to cart</th>
+            <th>
+        </tr>
+    </thead>
+    <tbody>
+
+eof
+
+    my $resultTable = "";
+    foreach my $isbn (@matching_isbns) {
+        my $price = $book_details{$isbn}{price};
+        my $title = $book_details{$isbn}{title};
+        my $author = $book_details{$isbn}{authors};
+        my $imageURL = $book_details{$isbn}{mediumimageurl};
+        my $imageHeight = $book_details{$isbn}{mediumimageheight};
+        my $imageWidth = $book_details{$isbn}{mediumimagewidth};
+        $resultTable .= <<eof;
+        <tr>
+            <td>
+                <image src=$imageURL width=$imageWidth height=$imageHeight>
+                <br/>
+                ISBN: $isbn
+            </td>
+            <td>$author</td>
+            <td>$title</td>
+            <td>$price</td>
+            <td><form method="POST" action="?">
+                <button class="btn btn-primary"><b>Add to Cart</b></button>
+                <input type="hidden" name="username" value="$username">
+                <input type="hidden" name="purchase" value="$isbn">
+            </form></td>
+        </tr>
+
+eof
+    }
+
+    my $htmlFooter = <<eof;
+    </tbody>
+    </table>
+	<p>
+
+eof
+
+   return $htmlHeader . $resultTable . $htmlFooter;
+}
+
+sub basket_results {
+    my @matching_isbns = read_basket($username);
+
+	my $htmlHeader = <<eof;
+    <div style="margin-left: 10%">
+        <h2>Cart for $username:</h2>
+    </div>
+    <table class="table table-hover" style="margin-left: 10%; width:70%">
+    <thead>
+        <tr>
+            <th>Book</th>
+            <th>Authors</th>
+            <th>Title</th>
+            <th>Price</th>
             <th>
         </tr>
     </thead>
@@ -260,37 +363,29 @@ eof
 }
 
 sub navbar() {
+    our $username = $_[0];
     my $navbar = <<eof;
 <nav class="navbar navbar-default navbar-fixed-top" role="navigation">
-    <div class="navbar-header">
+    <div class="navbar-header" style="margin-left: 10%">
         <a class="navbar-brand" href="mekong.cgi">Mekong</a>
     </div>
 
 
-    <form class="navbar-form navbar-left" role="search" style="width:30%">
+    <form class="navbar-form navbar-left" role="search" style="width:20%">
         <div class="input-group">
             <input type="text" class="form-control" name="search_terms" placeholder="Search">
             <div class="input-group-btn">
                 <button class="btn btn-default" type="submit"><i class="glyphicon glyphicon-search"></i></button>
+                <input type="hidden" value=$username name="username">
             </div>
         </div>
     </form>
 
-    <div class="collapse navbar-collapse">
-        <ul class="nav navbar-nav navbar-right">
-            <li><a href="#">Link</a></li>
-            <li class="dropdown">
-                <a href="#" class="dropdown-toggle" data-toggle="dropdown">Dropdown <b class="caret"></b></a>
-                <ul class="dropdown-menu">
-                    <li><a href="#">Action</a></li>
-                    <li><a href="#">Another action</a></li>
-                    <li><a href="#">Something else here</a></li>
-                    <li class="divider"></li>
-                    <li><a href="#">Separated link</a></li>
-                </ul>
-            </li>
-        </ul>
-    </div>
+    <ul class="nav navbar-nav navbar-right" style="margin-right: 20%">
+        <li><a href="?view=orders&username=$username">View Orders</a></li>
+        <li><a href="?view=cart&username=$username">View Cart</a></li>
+        <li><a href="?logout=true">Logout</a></li>
+    </ul>
 </nav>
 
 eof
@@ -441,12 +536,12 @@ sub authenticate {
 	our (%user_details, $last_error);
 	
 	return 0 if !legal_username($username);
-	if (!open(USER, "$users_dir/$username")) {
+	if (!open($USER, "$users_dir/$username")) {
 		$last_error = "User '$username' does not exist.";
 		return 0;
 	}
 	my %details =();
-	while (<USER>) {
+	while (<$USER>) {
 		next if !/^([^=]+)=(.*)/;
 		$details{$1} = $2;
 	}
@@ -502,14 +597,15 @@ sub new_account {
 		$user_details{$name} = $value;
 		$details .= "$name=$value\n";
 	}
-	if (!open(my $USER, ">$users_dir/$username")) {
+	if (!open($USER, ">$users_dir/$username")) {
 		$last_error = "Can not create user file $users_dir/$username: $!";
 		return 0;
 	}
-    print("trying to print details: $details, user is $USER");
-    print $USER $details;
-    print("printed details");
-	close($USER);
+    print $USER $details if defined $USER;
+    if (!defined $USER) {
+        print("Error when writing file: $!");
+    }
+	close $USER;
 	return $username;
 }
 
