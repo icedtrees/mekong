@@ -1,4 +1,4 @@
-#!C:/Perl64/bin/perl.exe -T
+#!/usr/bin/perl
 # written by andrewt@cse.unsw.edu.au October 2013
 # as a starting point for COMP2041 assignment 2
 # http://www.cse.unsw.edu.au/~cs2041/assignments/mekong/
@@ -24,14 +24,27 @@ sub cgi_main {
     set_global_variables();
 	read_books($books_file);
 
-	my $login = param('login');
+	my $username = param('username');
 	my $search_terms = param('search_terms');
-    
+    my $new_username = param('new_username');
+    my ($login, $password, $name, $street, $city, $state, $postcode, $email) = (param('login'), param('password'), param('name'), param('street'), param('city'), param('state'), param('postcode'), param('email'));
     if (defined $search_terms) {
 		print search_results($search_terms);
-	} elsif (defined $login) {
-		print user_form();
-	} else {
+    } elsif (defined $login) {
+        if (new_account($login, $password, $name, $street, $city, $state, $postcode, $email)) {
+            print(user_form());
+        } else {
+            print(new_user_form("error"));
+        }
+    } elsif (defined $username) {
+        if (authenticate($username, $password)) {
+            print user_form();
+        } else {
+            print(guest_home($last_error));
+        }
+	} elsif (defined $new_username) {
+        print(new_user_form($new_username));
+    } else {
 		print guest_home();
 	}
 	
@@ -43,14 +56,14 @@ sub cgi_main {
 sub guest_home {
 	return <<eof;
     <div class="jumbotron">
-        <div style="margin-left: 10%; float: left">
+        <div style="margin-left: 10%; float: left; width: 35%">
             <h1>Welcome to Mekong!</h1>
             <p>Mekong is a great website that makes buying books a fun experience!</p>
             <p>Make sure to check out some of the <a href="#"><b>top-ranked releases!</b></a></p>
             <br/>
             <p><a class="btn btn-primary btn-lg" role="button">Learn more about Mekong</a></p>
         </div>
-        <div style="margin-left: 50%; width: 25%">
+        <div style="margin-left: 50%; width: 300px">
             <div class="panel panel-default panel-primary">
                 <div class="panel-heading">
                     <h3 class="panel-title" style="font-size:20px">
@@ -60,13 +73,14 @@ sub guest_home {
                 </div>
                 <div class="panel-body">
                     <form role="form" method="POST" action="?login=true">
+                        <h5 style="color: red">@_</h4>
                         <div class="form-group">
                             <label for="username">Username: </label>
-                            <input type="text" class="form-control" name="username" size=14></input>
+                            <input type="text" class="form-control" name="username" size=16></input>
                         </div>
                         <div class="form-group">
                             <label for="password">Password: </label>
-                            <input type="password" class="form-control" name="password" size=14></input>
+                            <input type="password" class="form-control" name="password" size=16></input>
                         </div>
                         <button type="submit" class="btn btn-primary"><b>Login</b></button>
                     </form>
@@ -81,14 +95,10 @@ sub guest_home {
                     </h3>
                 </div>
                 <div class="panel-body">
-                    <form role="form">
+                    <form role="form" method="POST" action="?">
                         <div class="form-group">
-                            <label for="username">Username: </label>
-                            <input type="text" class="form-control" name="username" size=16></input>
-                        </div>
-                        <div class="form-group">
-                            <label for="password">Password: </label>
-                            <input type="text" class="form-control" name="password" size=16></input>
+                            <label for="username">Your username: </label>
+                            <input type="text" class="form-control" name="new_username" size=16></input>
                         </div>
                         <button type="submit" class="btn btn-success"><b>Make a new account!</b></button>
                     </form>
@@ -110,6 +120,63 @@ sub user_form {
 		search: <input type="text" name="search_terms" size=60></input>
 	</form>
 eof
+}
+
+sub new_user_form {
+    my $username = @_[0];
+    print("username is $username");
+    $formText = <<eof;
+    <div class="panel panel-default" style="margin-left: 8%; width: 300px; margin-top: 20px">
+    <div class="panel-body">
+    <form role="form" method="POST" action="?">
+
+eof
+
+    if ($username eq "error") {
+        our $last_error;
+        $formText .= <<eof;
+        <h5 style="color: red">$last_error</h4>
+eof
+    }
+    our %new_account_rows;
+    foreach my $text (@new_account_rows) {
+        my ($name, $label) = split(m/\|/, $text);
+        if ($name eq "login") {
+            $formText .= <<eof;
+            <div class="form-group">
+                <label for="$name">$label</label>
+                <input type="text" name="$name" value="$username">
+            </div>
+
+eof
+        } elsif ($name eq "password") {
+            $formText .= <<eof;
+            <div class="form-group">
+                <label for="$name">$label</label>
+                <input type="password" name="$name" value="$username">
+            </div>
+eof
+
+        } else {
+         $formText .= <<eof;
+        <div class="form-group">
+            <label for="$name">$label</label>
+            <input type="text" name="$name">
+        </div>
+
+eof
+
+        }
+    }
+    
+    $formText .= <<eof;
+    <input type="submit" value="Make my new account!">
+    </form>
+    </div>
+    </div>
+
+eof
+    return $formText;
 }
 
 # ascii display of search results
@@ -182,7 +249,7 @@ Content-Type: text/html
 <script src="//netdna.bootstrapcdn.com/bootstrap/3.0.1/js/bootstrap.min.js"></script>
 <style> 
     body {
-        padding-top: 60px;
+        padding-top: 50px;
     }
 </style>
 </head>
@@ -200,9 +267,9 @@ sub navbar() {
     </div>
 
 
-    <form class="navbar-form navbar-left" role="search">
+    <form class="navbar-form navbar-left" role="search" style="width:30%">
         <div class="input-group">
-            <input type="text" class="form-control" placeholder="Search">
+            <input type="text" class="form-control" name="search_terms" placeholder="Search">
             <div class="input-group-btn">
                 <button class="btn btn-default" type="submit"><i class="glyphicon glyphicon-search"></i></button>
             </div>
@@ -240,7 +307,9 @@ sub page_trailer() {
 	$debugging_info
 <body>
 </html>
+
 eof
+
 }
 
 #
@@ -263,7 +332,9 @@ sub debugging_info() {
 $params
 </pre>
 <hr>
+
 eof
+
 }
 
 
@@ -278,15 +349,15 @@ eof
 
 # return true if specified string can be used as a login
 
-sub legal_login {
-	my ($login) = @_;
+sub legal_username {
+	my ($username) = @_;
 	our ($last_error);
 
-	if ($login !~ /^[a-zA-Z][a-zA-Z0-9]*$/) {
-		$last_error = "Invalid login '$login': logins must start with a letter and contain only letters and digits.";
+	if ($username !~ /^[a-zA-Z][a-zA-Z0-9]*$/) {
+		$last_error = "Invalid login '$username': logins must start with a letter and contain only letters and digits.";
 		return 0;
 	}
-	if (length $login < 3 || length $login > 8) {
+	if (length $username < 3 || length $username > 8) {
 		$last_error = "Invalid login: logins must be 3-8 characters long.";
 		return 0;
 	}
@@ -366,12 +437,12 @@ sub total_books {
 # user's details are stored in hash user_details
 
 sub authenticate {
-	my ($login, $password) = @_;
+	my ($username, $password) = @_;
 	our (%user_details, $last_error);
 	
-	return 0 if !legal_login($login);
-	if (!open(USER, "$users_dir/$login")) {
-		$last_error = "User '$login' does not exist.";
+	return 0 if !legal_username($username);
+	if (!open(USER, "$users_dir/$username")) {
+		$last_error = "User '$username' does not exist.";
 		return 0;
 	}
 	my %details =();
@@ -392,6 +463,55 @@ sub authenticate {
 	 }
 	 %user_details = %details;
   	 return 1;
+}
+
+sub new_account {
+    print("paramsa re @_");
+	my ($username, $password, $name, $street, $city, $state, $postcode, $email) = @_;
+    my %details;
+    $details{"username"} = $username;
+    $details{"password"} = $password;
+    $details{"name"} = $name;
+    $details{"street"} = $street;
+    $details{"city"} = $city;
+    $details{"state"} = $state;
+    $details{"postcode"} = $postcode;
+    $details{"email"} = $email;
+    our $last_error;
+	if (!legal_username($username)) {
+		return 0;
+	}
+    our ($users_dir);
+	if (-r "$users_dir/$username") {
+		$last_error = "Invalid user name: login already exists.\n";
+		return 0;
+	}
+
+    my $details;
+	foreach $description (@new_account_rows) {
+		my ($name, $label)  = split /\|/, $description;
+		next if $name eq "login";
+		my $value = $details{$name};
+        chomp $value;
+        if ($name eq "password" && !legal_password($value)) {
+            return 0;
+        }
+        if ($value =~ m/^\s*$/) {
+            $last_error = "$name must not be empty.";
+            return 0;
+        }
+		$user_details{$name} = $value;
+		$details .= "$name=$value\n";
+	}
+	if (!open(my $USER, ">$users_dir/$username")) {
+		$last_error = "Can not create user file $users_dir/$username: $!";
+		return 0;
+	}
+    print("trying to print details");
+    print $USER $details;
+    print("printed details");
+	close($USER);
+	return $username;
 }
 
 # read contents of files in the books dir into the hash book
@@ -512,9 +632,9 @@ sub search_books1 {
 # return books in specified user's basket
 
 sub read_basket {
-	my ($login) = @_;
+	my ($username) = @_;
 	our %book_details;
-	open F, "$baskets_dir/$login" or return ();
+	open F, "$baskets_dir/$username" or return ();
 	my @isbns = <F>;
 
 	close(F);
@@ -528,9 +648,9 @@ sub read_basket {
 # only first occurance is deleted
 
 sub delete_basket {
-	my ($login, $delete_isbn) = @_;
-	my @isbns = read_basket($login);
-	open F, ">$baskets_dir/$login" or die "Can not open $baskets_dir/$login: $!";
+	my ($username, $delete_isbn) = @_;
+	my @isbns = read_basket($username);
+	open F, ">$baskets_dir/$username" or die "Can not open $baskets_dir/$username: $!";
 	foreach $isbn (@isbns) {
 		if ($isbn eq $delete_isbn) {
 			$delete_isbn = "";
@@ -539,15 +659,15 @@ sub delete_basket {
 		print F "$isbn\n";
 	}
 	close(F);
-	unlink "$baskets_dir/$login" if ! -s "$baskets_dir/$login";
+	unlink "$baskets_dir/$username" if ! -s "$baskets_dir/$username";
 }
 
 
 # add specified book to specified user's basket
 
 sub add_basket {
-	my ($login, $isbn) = @_;
-	open F, ">>$baskets_dir/$login" or die "Can not open $baskets_dir/$login::$! \n";
+	my ($username, $isbn) = @_;
+	open F, ">>$baskets_dir/$username" or die "Can not open $baskets_dir/$username::$! \n";
 	print F "$isbn\n";
 	close(F);
 }
@@ -556,7 +676,7 @@ sub add_basket {
 # finalize specified order
 
 sub finalize_order {
-	my ($login, $credit_card_number, $expiry_date) = @_;
+	my ($username, $credit_card_number, $expiry_date) = @_;
 	my $order_number = 0;
 
 	if (open ORDER_NUMBER, "$orders_dir/NEXT_ORDER_NUMBER") {
@@ -569,16 +689,16 @@ sub finalize_order {
 	print F ($order_number + 1);
 	close(F);
 
-	my @basket_isbns = read_basket($login);
+	my @basket_isbns = read_basket($username);
 	open ORDER,">$orders_dir/$order_number" or die "Can not open $orders_dir/$order_number:$! \n";
 	print ORDER "order_time=".time()."\n";
 	print ORDER "credit_card_number=$credit_card_number\n";
 	print ORDER "expiry_date=$expiry_date\n";
 	print ORDER join("\n",@basket_isbns)."\n";
 	close(ORDER);
-	unlink "$baskets_dir/$login";
+	unlink "$baskets_dir/$username";
 	
-	open F, ">>$orders_dir/$login" or die "Can not open $orders_dir/$login:$! \n";
+	open F, ">>$orders_dir/$username" or die "Can not open $orders_dir/$username:$! \n";
 	print F "$order_number\n";
 	close(F);
 	
@@ -588,8 +708,8 @@ sub finalize_order {
 # return order numbers for specified login
 
 sub login_to_orders {
-	my ($login) = @_;
-	open F, "$orders_dir/$login" or return ();
+	my ($username) = @_;
+	open F, "$orders_dir/$username" or return ();
 	@order_numbers = <F>;
 	close(F);
 	chomp(@order_numbers);
@@ -627,7 +747,7 @@ sub console_main {
 	read_books($books_file);
 	my @commands = qw(login new_account search details add drop basket checkout orders quit);
 	my @commands_without_arguments = qw(basket checkout orders quit);
-	my $login = "";
+	my $username = "";
 	
 	print "mekong.com.au - ASCII interface\n";
 	while (1) {
@@ -659,10 +779,10 @@ sub console_main {
 			last;
 		}
 		if ($command eq "login") {
-			$login = login_command($argument);
+			$username = login_command($argument);
 			next;
 		} elsif ($command eq "new_account") {
-			$login = new_account_command($argument);
+			$username = new_account_command($argument);
 			next;
 		} elsif ($command eq "search") {
 			search_command($argument);
@@ -672,21 +792,21 @@ sub console_main {
 			next;
 		}
 		
-		if (!$login) {
+		if (!$username) {
 			print "Not logged in.\n";
 			next;
 		}
 		
 		if ($command eq "basket") {
-			basket_command($login);
+			basket_command($username);
 		} elsif ($command eq "add") {
-			add_command($login, $argument);
+			add_command($username, $argument);
 		} elsif ($command eq "drop") {
-			drop_command($login, $argument);
+			drop_command($username, $argument);
 		} elsif ($command eq "checkout") {
-			checkout_command($login);
+			checkout_command($username);
 		} elsif ($command eq "orders") {
-			orders_command($login);
+			orders_command($username);
 		} else {
 			warn "internal error: unexpected command $command";
 		}
@@ -694,39 +814,39 @@ sub console_main {
 }
 
 sub login_command {
-	my ($login) = @_;
-	if (!legal_login($login)) {
+	my ($username) = @_;
+	if (!legal_username($username)) {
 		print "$last_error\n";
 		return "";
 	}
-	if (!-r "$users_dir/$login") {
-		print "User '$login' does not exist.\n";
+	if (!-r "$users_dir/$username") {
+		print "User '$username' does not exist.\n";
 		return "";
 	}
 	printf "Enter password: ";
 	my $pass = <STDIN>;
 	chomp $pass;
-	if (!authenticate($login, $pass)) {
+	if (!authenticate($username, $pass)) {
 		print "$last_error\n";
 		return "";
 	}
-	$login = $login;
-	print "Welcome to mekong.com.au, $login.\n";
-	return $login;
+	$username = $username;
+	print "Welcome to mekong.com.au, $username.\n";
+	return $username;
 }
 
 sub new_account_command {
-	my ($login) = @_;
-	if (!legal_login($login)) {
+	my ($username) = @_;
+	if (!legal_username($username)) {
 		print "$last_error\n";
 		return "";
 	}
-	if (-r "$users_dir/$login") {
+	if (-r "$users_dir/$username") {
 		print "Invalid user name: login already exists.\n";
 		return "";
 	}
-	if (!open(USER, ">$users_dir/$login")) {
-		print "Can not create user file $users_dir/$login: $!";
+	if (!open(USER, ">$users_dir/$username")) {
+		print "Can not create user file $users_dir/$username: $!";
 		return "";
 	}
 	foreach $description (@new_account_rows) {
@@ -748,8 +868,8 @@ sub new_account_command {
 		print USER "$name=$value\n";
 	}
 	close(USER);
-	print "Welcome to mekong.com.au, $login.\n";
-	return $login;
+	print "Welcome to mekong.com.au, $username.\n";
+	return $username;
 }
 
 sub search_command {
@@ -798,8 +918,8 @@ sub details_command {
 }
 
 sub basket_command {
-	my ($login) = @_;
-	my @basket_isbns = read_basket($login);
+	my ($username) = @_;
+	my @basket_isbns = read_basket($username);
 	if (!@basket_isbns) {
 		print "Your shopping basket is empty.\n";
 	} else {
@@ -809,7 +929,7 @@ sub basket_command {
 }
 
 sub add_command {
-	my ($login,$isbn) = @_;
+	my ($username,$isbn) = @_;
 	our %book_details;
 	if (!legal_isbn($isbn)) {
 		print "$last_error\n";
@@ -819,12 +939,12 @@ sub add_command {
 		print "Unknown isbn: $isbn.\n";
 		return;
 	}
-	add_basket($login, $isbn);
+	add_basket($username, $isbn);
 }
 
 sub drop_command {
-	my ($login,$isbn) = @_;
-	my @basket_isbns = read_basket($login);
+	my ($username,$isbn) = @_;
+	my @basket_isbns = read_basket($username);
 	if (!legal_isbn($argument)) {
 		print "$last_error\n";
 		return;
@@ -833,12 +953,12 @@ sub drop_command {
 		print "Isbn $isbn not in shopping basket.\n";
 		return;
 	}
-	delete_basket($login, $isbn);
+	delete_basket($username, $isbn);
 }
 
 sub checkout_command {
-	my ($login) = @_;
-	my @basket_isbns = read_basket($login);
+	my ($username) = @_;
+	my @basket_isbns = read_basket($username);
 	if (!@basket_isbns) {
 		print "Your shopping basket is empty.\n";
 		return;
@@ -867,13 +987,13 @@ sub checkout_command {
 			last if legal_expiry_date($expiry_date);
 			print "$last_error\n";
 	}
-	finalize_order($login, $credit_card_number, $expiry_date);
+	finalize_order($username, $credit_card_number, $expiry_date);
 }
 
 sub orders_command {
-	my ($login) = @_;
+	my ($username) = @_;
 	print "\n";
-	foreach $order (login_to_orders($login)) {
+	foreach $order (login_to_orders($username)) {
 		my ($order_time, $credit_card_number, $expiry_date, @isbns) = read_order($order);
 		$order_time = localtime($order_time);
 		print "Order #$order - $order_time\n";
