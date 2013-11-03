@@ -41,20 +41,70 @@ sub cgi_main {
 	} elsif (defined $login) {
 		print search_form();
 	} else {
-		print login_form();
+		print guest_home();
 	}
 	
 	print page_trailer();
 }
 
-# simple login form without authentication	
-sub login_form {
+# the home page for non-logged-in users	
+sub guest_home {
 	return <<eof;
-	<p>
-	<form>
-		login: <input type="text" name="login" size=16></input>
-	</form>
-	<p>
+    <div class="jumbotron">
+        <div style="margin-left: 10%; float: left">
+            <h1>Welcome to Mekong!</h1>
+            <p>Mekong is a great website that makes buying books a fun experience!</p>
+            <p>Make sure to check out some of the <a href="#"><b>top-ranked releases!</b></a></p>
+            <br/>
+            <p><a class="btn btn-primary btn-lg" role="button">Learn more about Mekong</a></p>
+        </div>
+        <div style="margin-left: 50%; width: 25%">
+            <div class="panel panel-default panel-primary">
+                <div class="panel-heading">
+                    <h3 class="panel-title" style="font-size:20px">
+                        <i class="glyphicon glyphicon-arrow-right"></i>
+                        <b>Login to Mekong!</b>
+                    </h3>
+                </div>
+                <div class="panel-body">
+                    <form role="form">
+                        <div class="form-group">
+                            <label for="username">Username: </label>
+                            <input type="text" class="form-control" id="username" size=14></input>
+                        </div>
+                        <div class="form-group">
+                            <label for="password">Password: </label>
+                            <input type="text" class="form-control" id="password" size=14></input>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Login</button>
+                    </form>
+                </div>
+            </div>
+            <h2>Are you new to Mekong?</h2>
+            <div class="panel panel-default panel-primary">
+                <div class="panel-heading">
+                    <h3 class="panel-title" style="font-size:20px">
+                        <i class="glyphicon glyphicon-asterisk"></i>
+                        <b>Make a new account!</b>
+                    </h3>
+                </div>
+                <div class="panel-body">
+                    <form role="form">
+                        <div class="form-group">
+                            <label for="username">Username: </label>
+                            <input type="text" class="form-control" id="username" size=16></input>
+                        </div>
+                        <div class="form-group">
+                            <label for="password">Password: </label>
+                            <input type="text" class="form-control" id="password" size=16></input>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Login</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
 eof
 }
 
