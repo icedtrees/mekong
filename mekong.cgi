@@ -466,7 +466,6 @@ sub authenticate {
 }
 
 sub new_account {
-    print("paramsa re @_");
 	my ($username, $password, $name, $street, $city, $state, $postcode, $email) = @_;
     my %details;
     $details{"username"} = $username;
@@ -487,7 +486,7 @@ sub new_account {
 		return 0;
 	}
 
-    my $details;
+    my $details = "";
 	foreach $description (@new_account_rows) {
 		my ($name, $label)  = split /\|/, $description;
 		next if $name eq "login";
@@ -507,7 +506,7 @@ sub new_account {
 		$last_error = "Can not create user file $users_dir/$username: $!";
 		return 0;
 	}
-    print("trying to print details");
+    print("trying to print details: $details, user is $USER");
     print $USER $details;
     print("printed details");
 	close($USER);
